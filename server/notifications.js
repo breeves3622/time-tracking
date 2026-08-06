@@ -54,24 +54,45 @@ async function sendPushNotification(title, message, options = {}) {
 
   // 2. Dispatch Ntfy / Gotify if target is set
   if (settings.ntfy_target && settings.ntfy_target.trim()) {
-    let ntfyUrl = settings.ntfy_target.trim();
-    if (!ntfyUrl.startsWith('http://') && !ntfyUrl.startsWith('https://')) {
-      ntfyUrl = `https://ntfy.sh/${ntfyUrl}`;
-    }
+    let targetUrl = settings.ntfy_target.trim();
+
+    // Check if Gotify URL format (contains /message or token=)
+    const isGotify = targetUrl.includes('/message') || targetUrl.includes('token=');
 
     try {
-      await fetch(ntfyUrl, {
-        method: 'POST',
-        headers: {
-          'Title': title,
-          'Priority': options.priority || 'high',
-          'Tags': options.tags || 'alarm_clock,warning',
-        },
-        body: message
-      });
-      console.log(`[Notification] Ntfy alert dispatched to ${ntfyUrl}`);
+      if (isGotify) {
+        // Gotify JSON payload format
+        const priorityNum = options.priority === 'max' ? 10 : (options.priority === 'high' ? 8 : 5);
+        await fetch(targetUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            title: title,
+            message: message,
+            priority: priorityNum
+          })
+        });
+        console.log(`[Notification] Gotify alert dispatched to ${targetUrl}`);
+      } else {
+        // Ntfy plain text format
+        if (!targetUrl.startsWith('http://') && !targetUrl.startsWith('https://')) {
+          targetUrl = `https://ntfy.sh/${targetUrl}`;
+        }
+        await fetch(targetUrl, {
+          method: 'POST',
+          headers: {
+            'Title': title,
+            'Priority': options.priority || 'high',
+            'Tags': options.tags || 'alarm_clock,warning',
+          },
+          body: message
+        });
+        console.log(`[Notification] Ntfy alert dispatched to ${targetUrl}`);
+      }
     } catch (err) {
-      console.error('[Notification] Error sending Ntfy alert:', err.message);
+      console.error('[Notification] Error sending push alert:', err.message);
     }
   }
 
