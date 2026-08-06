@@ -1,0 +1,25 @@
+name: Deploy to Portainer Stack
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Portainer Stack Redeploy Webhook
+        env:
+          PORTAINER_WEBHOOK: ${{ secrets.PORTAINER_WEBHOOK_URL }}
+        run: |
+          if [ -z "$PORTAINER_WEBHOOK" ]; then
+            echo "PORTAINER_WEBHOOK_URL secret is not set in GitHub repository secrets."
+            echo "Add your Portainer Stack Webhook URL to GitHub -> Settings -> Secrets -> Actions"
+            exit 1
+          fi
+          echo "Pinging Portainer stack redeploy webhook..."
+          curl -X POST -k "$PORTAINER_WEBHOOK"
+          echo "Portainer redeploy triggered successfully!"

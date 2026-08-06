@@ -1,0 +1,16 @@
+{
+  "name": "Time Tracker - Work & Break Manager",
+  "short_name": "TimeTracker",
+  "description": "Self-hosted work, break, and lunch clocking app with warning push notifications",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0b0f19",
+  "theme_color": "#0f172a",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    }
+  ]
+}

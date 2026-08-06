@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Time Tracker - Self-Hosted Work & Break Timer</title>
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#0f172a">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Navbar -->
+    <header class="navbar">
+      <div class="brand">
+        <div class="logo-icon">⏱️</div>
+        <div>
+          <h1>Time Tracker</h1>
+          <span class="sub-text">Self-Hosted Work & Break Manager</span>
+        </div>
+      </div>
+      <div class="nav-right">
+        <div class="live-clock" id="live-clock">00:00:00 AM</div>
+        <button id="btn-open-settings" class="btn-icon" title="Settings">⚙️</button>
+      </div>
+    </header>
+
+    <!-- Main Dashboard Grid -->
+    <main class="dashboard">
+      <!-- Status & Clocking Panel -->
+      <section class="card status-panel">
+        <div class="status-header">
+          <span class="status-label">CURRENT STATUS</span>
+          <span class="status-badge status-clocked_out" id="status-badge">CLOCKED OUT</span>
+        </div>
+
+        <div class="timer-container">
+          <div class="timer-display" id="timer-display">00:00:00</div>
+          <div class="timer-subtext" id="timer-subtext">Click below to start your shift</div>
+
+          <!-- Progress Ring/Bar for Break & Lunch countdowns -->
+          <div class="progress-bar-wrapper" id="progress-wrapper" style="display: none;">
+            <div class="progress-bar-fill" id="progress-fill" style="width: 0%;"></div>
+          </div>
+          <div class="progress-label" id="progress-label"></div>
+        </div>
+
+        <!-- Dynamic Control Action Buttons -->
+        <div class="actions-grid" id="actions-grid">
+          <!-- Populated by app.js depending on status -->
+          <button class="btn btn-primary btn-lg" id="btn-clock-in">
+            <span class="icon">▶</span> Clock In
+          </button>
+        </div>
+      </section>
+
+      <!-- Today's Summary Metrics -->
+      <section class="metrics-grid">
+        <div class="card metric-card metric-work">
+          <div class="metric-icon">💼</div>
+          <div class="metric-info">
+            <span class="metric-title">Work Time Today</span>
+            <span class="metric-value" id="metric-work-time">0h 0m</span>
+          </div>
+        </div>
+
+        <div class="card metric-card metric-break">
+          <div class="metric-icon">☕</div>
+          <div class="metric-info">
+            <span class="metric-title">Break Time Today</span>
+            <span class="metric-value" id="metric-break-time">0h 0m</span>
+          </div>
+        </div>
+
+        <div class="card metric-card metric-lunch">
+          <div class="metric-icon">🥪</div>
+          <div class="metric-info">
+            <span class="metric-title">Lunch Time Today</span>
+            <span class="metric-value" id="metric-lunch-time">0h 0m</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Shift History & Logs Section -->
+      <section class="card logs-section">
+        <div class="logs-header">
+          <h2>Shift History</h2>
+          <div class="logs-actions">
+            <button id="btn-open-manual-log" class="btn btn-secondary btn-sm">➕ Add Manual Entry</button>
+            <button id="btn-export-csv" class="btn btn-secondary btn-sm">📥 Export CSV</button>
+          </div>
+        </div>
+
+        <div class="table-responsive">
+          <table class="logs-table">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Clock In</th>
+                <th>Clock Out</th>
+                <th>Work Total</th>
+                <th>Break</th>
+                <th>Lunch</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="logs-tbody">
+              <tr>
+                <td colspan="8" class="text-center">Loading shift history...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Settings Modal -->
+  <div class="modal-overlay" id="settings-modal" style="display: none;">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>⚙️ Application & Notification Settings</h3>
+        <button class="btn-close" id="btn-close-settings">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="settings-form">
+          <div class="form-section-title">Shift Target Thresholds</div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="set-shift-hours">Shift Duration (Hours)</label>
+              <input type="number" id="set-shift-hours" step="0.5" min="1" max="24" required>
+            </div>
+            <div class="form-group">
+              <label for="set-break-mins">Standard Break (Minutes)</label>
+              <input type="number" id="set-break-mins" min="1" max="120" required>
+            </div>
+            <div class="form-group">
+              <label for="set-lunch-mins">Standard Lunch (Minutes)</label>
+              <input type="number" id="set-lunch-mins" min="1" max="180" required>
+            </div>
+            <div class="form-group">
+              <label for="set-lunch-after">Lunch Target (Hours after start)</label>
+              <input type="number" id="set-lunch-after" step="0.5" min="1" max="12" required>
+            </div>
+          </div>
+
+          <div class="form-section-title">Warning Notifications</div>
+          <div class="form-group">
+            <label for="set-warning-lead">Warning Lead Time (Minutes before break/lunch end)</label>
+            <input type="number" id="set-warning-lead" min="1" max="15" required>
+            <small class="help-text">You will receive a warning alert X minutes before your break or lunch period ends.</small>
+          </div>
+
+          <div class="form-group">
+            <label for="set-ntfy-target">Ntfy / Gotify Channel (Optional for Mobile Push)</label>
+            <input type="text" id="set-ntfy-target" placeholder="e.g. my-private-time-tracker-123">
+            <small class="help-text">Enter your ntfy topic name or full server URL (e.g. <code>ntfy.sh/my-topic</code>) to receive phone push notifications.</small>
+          </div>
+
+          <div class="notification-test-box">
+            <div class="test-text">
+              <strong>Web Push & Notification Test</strong>
+              <div id="push-status-text">Checking browser notification permissions...</div>
+            </div>
+            <div class="test-btns">
+              <button type="button" id="btn-enable-webpush" class="btn btn-secondary btn-sm">Enable Web Push</button>
+              <button type="button" id="btn-test-notification" class="btn btn-warning btn-sm">🔔 Send Test Push</button>
+            </div>
+          </div>
+
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" id="btn-cancel-settings">Cancel</button>
+            <button type="submit" class="btn btn-primary">Save Settings</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Manual Entry Modal -->
+  <div class="modal-overlay" id="manual-log-modal" style="display: none;">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>➕ Add Manual Shift Entry</h3>
+        <button class="btn-close" id="btn-close-manual-log">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="manual-log-form">
+          <div class="form-group">
+            <label for="log-date">Shift Date</label>
+            <input type="date" id="log-date" required>
+          </div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="log-start-time">Clock In Time</label>
+              <input type="datetime-local" id="log-start-time" required>
+            </div>
+            <div class="form-group">
+              <label for="log-end-time">Clock Out Time</label>
+              <input type="datetime-local" id="log-end-time" required>
+            </div>
+          </div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="log-work-mins">Work Minutes</label>
+              <input type="number" id="log-work-mins" min="0" value="450" required>
+            </div>
+            <div class="form-group">
+              <label for="log-break-mins">Break Minutes</label>
+              <input type="number" id="log-break-mins" min="0" value="15" required>
+            </div>
+            <div class="form-group">
+              <label for="log-lunch-mins">Lunch Minutes</label>
+              <input type="number" id="log-lunch-mins" min="0" value="30" required>
+            </div>
+          </div>
+
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" id="btn-cancel-manual-log">Cancel</button>
+            <button type="submit" class="btn btn-primary">Save Entry</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <script src="/js/app.js"></script>
+</body>
+</html>
