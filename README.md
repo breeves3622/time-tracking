@@ -49,7 +49,7 @@ services:
     container_name: gotify
     restart: unless-stopped
     ports:
-      - "8088:80"
+      - "8090:80"
     environment:
       - GOTIFY_SERVER_PORT=80
       - TZ=America/New_York
@@ -70,7 +70,7 @@ volumes:
 ## ⚙️ Initial Gotify & Time Tracker Configuration
 
 ### 1. Set Up Gotify
-1. Open Gotify in your browser at `http://your-server-ip:8088`.
+1. Open Gotify in your browser at `http://your-server-ip:8090`.
 2. Log in with default credentials:
    - **Username**: `admin`
    - **Password**: `admin` *(Change this immediately under User settings!)*
@@ -83,5 +83,5 @@ volumes:
 2. Click **⚙️ Settings** in the top right.
 3. In **Push Notification Endpoint**, enter the internal or external Gotify URL:
    - Internal Docker URL: `http://gotify/message?token=YOUR_APP_TOKEN`
-   - External URL: `http://your-server-ip:8088/message?token=YOUR_APP_TOKEN`
+   - External URL: `http://your-server-ip:8090/message?token=YOUR_APP_TOKEN`
 4. Click **🔔 Send Test Push** to test push notification delivery to Gotify!
