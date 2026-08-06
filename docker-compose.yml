@@ -3,7 +3,6 @@ version: '3.8'
 services:
   time-tracker:
     build: .
-    image: time-tracker:latest
     container_name: time-tracker
     restart: unless-stopped
     ports:
