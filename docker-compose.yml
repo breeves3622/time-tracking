@@ -7,7 +7,7 @@ services:
     container_name: time-tracker
     restart: unless-stopped
     ports:
-      - "8080:8080"
+      - "${HOST_PORT:-8880}:8080"
     environment:
       - PORT=8080
       - DATA_DIR=/app/data

@@ -39,7 +39,7 @@ services:
     container_name: time-tracker
     restart: unless-stopped
     ports:
-      - "8080:8080"
+      - "8880:8080" # Maps host port 8880 to container port 8080
     environment:
       - PORT=8080
       - DATA_DIR=/app/data
