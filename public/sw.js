@@ -15,8 +15,9 @@ self.addEventListener('push', function(event) {
     body: data.body,
     icon: '/icon-192.png',
     badge: '/badge-72.png',
-    vibrate: [200, 100, 200, 100, 200],
-    tag: data.tag || 'time-tracker-notification',
+    vibrate: [500, 200, 500, 200, 500, 200, 1000, 500, 1000],
+    tag: data.tag || 'time-tracker-alarm',
+    requireInteraction: true, // Keep notification pinned on screen until user interacts!
     renotify: true,
     data: {
       url: '/'

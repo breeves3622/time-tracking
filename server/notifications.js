@@ -61,8 +61,8 @@ async function sendPushNotification(title, message, options = {}) {
 
     try {
       if (isGotify) {
-        // Gotify JSON payload format
-        const priorityNum = options.priority === 'max' ? 10 : (options.priority === 'high' ? 8 : 5);
+        // Gotify JSON payload format with high-priority alarm extras
+        const priorityNum = (options.priority === 'max' || options.isAlarm) ? 10 : (options.priority === 'high' ? 8 : 5);
         await fetch(targetUrl, {
           method: 'POST',
           headers: {
@@ -71,12 +71,19 @@ async function sendPushNotification(title, message, options = {}) {
           body: JSON.stringify({
             title: title,
             message: message,
-            priority: priorityNum
+            priority: priorityNum,
+            extras: {
+              "android::notification": {
+                "sound": "alarm",
+                "vibrate": [1000, 500, 1000, 500, 1000, 500, 1000],
+                "priority": 2
+              }
+            }
           })
         });
-        console.log(`[Notification] Gotify alert dispatched to ${targetUrl}`);
+        console.log(`[Notification] Gotify alarm dispatched to ${targetUrl}`);
       } else {
-        // Ntfy plain text format
+        // Ntfy plain text format with alarm headers
         if (!targetUrl.startsWith('http://') && !targetUrl.startsWith('https://')) {
           targetUrl = `https://ntfy.sh/${targetUrl}`;
         }
@@ -84,12 +91,12 @@ async function sendPushNotification(title, message, options = {}) {
           method: 'POST',
           headers: {
             'Title': title,
-            'Priority': options.priority || 'high',
-            'Tags': options.tags || 'alarm_clock,warning',
+            'Priority': options.priority === 'max' ? 'max' : (options.priority || 'high'),
+            'Tags': options.tags || 'alarm_clock,warning,loud_sound',
           },
           body: message
         });
-        console.log(`[Notification] Ntfy alert dispatched to ${targetUrl}`);
+        console.log(`[Notification] Ntfy alarm dispatched to ${targetUrl}`);
       }
     } catch (err) {
       console.error('[Notification] Error sending push alert:', err.message);

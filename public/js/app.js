@@ -217,6 +217,7 @@ function renderActionButtons() {
 
 // Handle clock button action click
 async function handleClockAction(action) {
+  stopContinuousAudioAlarm();
   try {
     const res = await fetch('/api/clock', {
       method: 'POST',
@@ -399,6 +400,12 @@ function setupEventListeners() {
   document.getElementById('btn-current-week').addEventListener('click', () => fetchWeeklySummary());
   document.getElementById('btn-next-week').addEventListener('click', () => navigateWeek(7));
   document.getElementById('btn-copy-agile1').addEventListener('click', copyAgile1Summary);
+
+  // Alarm Banner Mute button
+  const stopAlarmBtn = document.getElementById('btn-stop-alarm');
+  if (stopAlarmBtn) {
+    stopAlarmBtn.addEventListener('click', stopContinuousAudioAlarm);
+  }
 }
 
 // Open Settings Modal
@@ -614,13 +621,50 @@ async function exportCsv() {
   }
 }
 
+// Continuous Audio Alarm loop & Banner Controller
+let alarmAudioInterval = null;
+let isAlarmActive = false;
+
+function startContinuousAudioAlarm(title, message) {
+  isAlarmActive = true;
+  const banner = document.getElementById('alarm-banner');
+  if (banner) {
+    document.getElementById('alarm-banner-title').textContent = title || '⏰ ALARM: Time Limit Reached!';
+    document.getElementById('alarm-banner-msg').textContent = message || 'Please clock back in or resume work.';
+    banner.style.display = 'flex';
+  }
+
+  playNotificationAudio();
+  if (alarmAudioInterval) clearInterval(alarmAudioInterval);
+  alarmAudioInterval = setInterval(() => {
+    if (isAlarmActive) {
+      playNotificationAudio();
+    } else {
+      clearInterval(alarmAudioInterval);
+    }
+  }, 1200);
+}
+
+function stopContinuousAudioAlarm() {
+  isAlarmActive = false;
+  if (alarmAudioInterval) {
+    clearInterval(alarmAudioInterval);
+    alarmAudioInterval = null;
+  }
+  const banner = document.getElementById('alarm-banner');
+  if (banner) {
+    banner.style.display = 'none';
+  }
+}
+
 // SSE Connection for live alerts
 function setupSse() {
   const evtSource = new EventSource('/api/events');
   evtSource.addEventListener('notification', (e) => {
     const data = JSON.parse(e.data);
     showToast(data.title, data.message, 'warning');
-    playNotificationAudio();
+    // Trigger continuous audio alarm & visual banner!
+    startContinuousAudioAlarm(data.title, data.message);
   });
 }
 
