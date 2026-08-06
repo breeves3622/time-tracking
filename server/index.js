@@ -471,11 +471,11 @@ app.post('/api/push/subscribe', (req, res) => {
 app.post('/api/push/test', async (req, res) => {
   try {
     await sendPushNotification(
-      '🔔 Test Notification',
-      'This is a test warning alert from your self-hosted Docker Time Tracker!',
-      { tag: 'test-push', priority: 'high' }
+      '⏰ Alarm Test Triggered',
+      'This is a persistent alarm test from your self-hosted Time Tracker!',
+      { tag: 'test-push', priority: 'max', isAlarm: true }
     );
-    res.json({ success: true, message: 'Test notification sent to Web Push and Ntfy/Gotify target!' });
+    res.json({ success: true, message: 'Test alarm sent to Web Push and Gotify target!' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

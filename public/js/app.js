@@ -138,6 +138,9 @@ function runActiveTimer() {
     } else {
       progressLabelEl.textContent = '⚠️ Break time expired! Please clock back into work.';
       progressFillEl.style.background = '#ef4444';
+      if (!isAlarmActive) {
+        startContinuousAudioAlarm('⏰ Break Time Expired!', `Your ${breakMins}-minute break is over. Please clock back in!`);
+      }
     }
   } else if (currentStatus === 'lunch') {
     timerSubtextEl.textContent = `On Lunch (${lunchMins} min target)`;
@@ -159,6 +162,9 @@ function runActiveTimer() {
     } else {
       progressLabelEl.textContent = '⚠️ Lunch period expired! Please clock back into work.';
       progressFillEl.style.background = '#ef4444';
+      if (!isAlarmActive) {
+        startContinuousAudioAlarm('⏰ Lunch Period Expired!', `Your ${lunchMins}-minute lunch break is over. Please clock back in!`);
+      }
     }
   }
 }
@@ -677,27 +683,53 @@ function setupSse() {
   });
 }
 
-// Play notification audio alert chime
+// Global AudioContext for browser autoplay compatibility
+let globalAudioCtx = null;
+
+function getGlobalAudioContext() {
+  if (!globalAudioCtx) {
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (AudioContextClass) {
+      globalAudioCtx = new AudioContextClass();
+    }
+  }
+  if (globalAudioCtx && globalAudioCtx.state === 'suspended') {
+    globalAudioCtx.resume();
+  }
+  return globalAudioCtx;
+}
+
+// Auto-unlock audio context on any user click or touch
+['click', 'touchstart', 'keydown'].forEach(evt => {
+  document.addEventListener(evt, () => {
+    getGlobalAudioContext();
+  }, { once: false });
+});
+
+// Play loud alarm audio chime
 function playNotificationAudio() {
   try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const ctx = getGlobalAudioContext();
+    if (!ctx) return;
+
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
 
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(587.33, ctx.currentTime); // D5
-    osc.frequency.setValueAtTime(880, ctx.currentTime + 0.15); // A5
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(880, ctx.currentTime);
+    osc.frequency.setValueAtTime(587.33, ctx.currentTime + 0.2);
+    osc.frequency.setValueAtTime(880, ctx.currentTime + 0.4);
 
-    gain.gain.setValueAtTime(0.3, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.6);
+    gain.gain.setValueAtTime(0.5, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.7);
 
     osc.connect(gain);
     gain.connect(ctx.destination);
 
     osc.start();
-    osc.stop(ctx.currentTime + 0.6);
+    osc.stop(ctx.currentTime + 0.7);
   } catch (e) {
-    // Audio context play blocked until user gesture
+    console.error('Audio alert playback error:', e);
   }
 }
 
