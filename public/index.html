@@ -13,21 +13,6 @@
 </head>
 <body>
   <div class="app-container">
-    <!-- Navbar -->
-    <header class="navbar">
-      <div class="brand">
-        <div class="logo-icon">⏱️</div>
-        <div>
-          <h1>Time Tracker</h1>
-          <span class="sub-text">Self-Hosted Work & Break Manager</span>
-        </div>
-      </div>
-      <div class="nav-right">
-        <div class="live-clock" id="live-clock">00:00:00 AM</div>
-        <button id="btn-open-settings" class="btn-icon" title="Settings">⚙️</button>
-      </div>
-    </header>
-
     <!-- Persistent Audio & Visual Alarm Banner -->
     <div class="alarm-banner" id="alarm-banner" style="display: none;">
       <div class="alarm-banner-content">
@@ -44,9 +29,13 @@
     <main class="dashboard">
       <!-- Status & Clocking Panel -->
       <section class="card status-panel">
-        <div class="status-header">
-          <span class="status-label">CURRENT STATUS</span>
-          <span class="status-badge status-clocked_out" id="status-badge">CLOCKED OUT</span>
+        <div class="status-panel-top">
+          <div class="live-clock" id="live-clock">00:00:00 AM</div>
+          <div class="status-header">
+            <span class="status-label">CURRENT STATUS</span>
+            <span class="status-badge status-clocked_out" id="status-badge">CLOCKED OUT</span>
+          </div>
+          <button id="btn-open-settings" class="btn-icon" title="Settings">⚙️</button>
         </div>
 
         <div class="timer-container">
