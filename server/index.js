@@ -276,6 +276,91 @@ app.get('/api/logs', (req, res) => {
   }
 });
 
+// GET /api/weekly-summary - Weekly view for Agile1 / PPM
+app.get('/api/weekly-summary', (req, res) => {
+  try {
+    let weekStartStr = req.query.week_start;
+    let startDate;
+
+    if (weekStartStr) {
+      startDate = new Date(weekStartStr + 'T00:00:00');
+    } else {
+      const today = new Date();
+      const day = today.getDay();
+      const diff = today.getDate() - day + (day === 0 ? -6 : 1);
+      startDate = new Date(today.setDate(diff));
+    }
+
+    const dayNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    const days = [];
+    let grandTotalWorkMs = 0;
+    let grandTotalBreakMs = 0;
+    let grandTotalLunchMs = 0;
+
+    const now = new Date().getTime();
+
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(startDate);
+      d.setDate(startDate.getDate() + i);
+      const dateStr = d.toISOString().split('T')[0];
+      const shiftsOnDate = db.getShiftsByDate(dateStr);
+
+      let dayWorkMs = 0;
+      let dayBreakMs = 0;
+      let dayLunchMs = 0;
+      let firstClockIn = null;
+      let lastClockOut = null;
+
+      if (shiftsOnDate.length > 0) {
+        firstClockIn = shiftsOnDate[0].start_time;
+        lastClockOut = shiftsOnDate[shiftsOnDate.length - 1].end_time;
+
+        for (const shift of shiftsOnDate) {
+          const events = db.getEvents(shift.id);
+          for (const ev of events) {
+            let dur = ev.duration_ms || 0;
+            if (!ev.end_time && shift.status !== 'clocked_out') {
+              dur = now - new Date(ev.start_time).getTime();
+            }
+            if (ev.type === 'work') dayWorkMs += dur;
+            else if (ev.type === 'break') dayBreakMs += dur;
+            else if (ev.type === 'lunch') dayLunchMs += dur;
+          }
+        }
+      }
+
+      grandTotalWorkMs += dayWorkMs;
+      grandTotalBreakMs += dayBreakMs;
+      grandTotalLunchMs += dayLunchMs;
+
+      days.push({
+        date: dateStr,
+        day_name: dayNames[i],
+        short_date: d.toLocaleDateString([], { month: 'short', day: 'numeric' }),
+        first_clock_in: firstClockIn ? new Date(firstClockIn).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '-',
+        last_clock_out: lastClockOut ? new Date(lastClockOut).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : (firstClockIn ? 'Active' : '-'),
+        work_hours: (dayWorkMs / (1000 * 60 * 60)).toFixed(2),
+        break_hours: (dayBreakMs / (1000 * 60 * 60)).toFixed(2),
+        lunch_hours: (dayLunchMs / (1000 * 60 * 60)).toFixed(2),
+        work_ms: dayWorkMs
+      });
+    }
+
+    const weekEndStr = new Date(startDate.getTime() + 6 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+
+    res.json({
+      week_start: startDate.toISOString().split('T')[0],
+      week_end: weekEndStr,
+      total_work_hours: (grandTotalWorkMs / (1000 * 60 * 60)).toFixed(2),
+      total_break_hours: (grandTotalBreakMs / (1000 * 60 * 60)).toFixed(2),
+      total_lunch_hours: (grandTotalLunchMs / (1000 * 60 * 60)).toFixed(2),
+      days
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // POST /api/logs - Manual add entry
 app.post('/api/logs', (req, res) => {
   try {

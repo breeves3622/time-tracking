@@ -82,6 +82,48 @@
             <span class="metric-value" id="metric-lunch-time">0h 0m</span>
           </div>
         </div>
+      <!-- Weekly Timesheet View (Agile1 & PPM decimal hours format) -->
+      <section class="card weekly-section">
+        <div class="logs-header">
+          <div>
+            <h2>📅 Weekly Timesheet View</h2>
+            <span class="sub-text">Decimal hours (#.##) formatted for Agile1 & PPM time entry</span>
+          </div>
+          <div class="logs-actions">
+            <button id="btn-prev-week" class="btn btn-secondary btn-sm">◀ Prev Week</button>
+            <button id="btn-current-week" class="btn btn-secondary btn-sm">Current Week</button>
+            <button id="btn-next-week" class="btn btn-secondary btn-sm">Next Week ▶</button>
+            <button id="btn-copy-agile1" class="btn btn-success btn-sm">📋 Copy for Agile1 / PPM</button>
+          </div>
+        </div>
+
+        <div class="week-summary-bar">
+          <div class="week-range-label" id="week-range-label">Mon Aug 03 - Sun Aug 09, 2026</div>
+          <div class="week-total-badge">
+            Total Net Hours: <strong id="week-total-hours">0.00</strong> hrs
+          </div>
+        </div>
+
+        <div class="table-responsive">
+          <table class="logs-table weekly-table">
+            <thead>
+              <tr>
+                <th>Day</th>
+                <th>Date</th>
+                <th>Clock In</th>
+                <th>Clock Out</th>
+                <th>Break (hrs)</th>
+                <th>Lunch (hrs)</th>
+                <th>Net Work Hours (#.##)</th>
+              </tr>
+            </thead>
+            <tbody id="weekly-tbody">
+              <tr>
+                <td colspan="7" class="text-center">Loading weekly summary...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </section>
 
       <!-- Shift History & Logs Section -->

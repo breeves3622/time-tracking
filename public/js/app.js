@@ -37,6 +37,7 @@ document.addEventListener('DOMContentLoaded', () => {
   startLiveClock();
   fetchStatus();
   fetchLogs();
+  fetchWeeklySummary();
   setupEventListeners();
   setupSse();
   initServiceWorker();
@@ -232,9 +233,83 @@ async function handleClockAction(action) {
     showToast('Success', data.message, 'success');
     await fetchStatus();
     await fetchLogs();
+    await fetchWeeklySummary(currentWeekStartStr || '');
   } catch (err) {
     showToast('Error', err.message, 'danger');
   }
+}
+
+// Weekly Summary State & Functions
+let currentWeekStartStr = null;
+let cachedWeeklyData = null;
+
+async function fetchWeeklySummary(weekStartStr = '') {
+  try {
+    const res = await fetch(`/api/weekly-summary?week_start=${weekStartStr}`);
+    const data = await res.json();
+    cachedWeeklyData = data;
+    currentWeekStartStr = data.week_start;
+
+    document.getElementById('week-range-label').textContent = `Mon ${data.week_start} - Sun ${data.week_end}`;
+    document.getElementById('week-total-hours').textContent = data.total_work_hours;
+
+    const tbody = document.getElementById('weekly-tbody');
+    tbody.innerHTML = data.days.map(d => {
+      const isWork = parseFloat(d.work_hours) > 0;
+      const hoursClass = isWork ? 'week-hours-highlight' : '';
+      return `
+        <tr>
+          <td><strong>${d.day_name}</strong></td>
+          <td>${d.short_date}</td>
+          <td>${d.first_clock_in}</td>
+          <td>${d.last_clock_out}</td>
+          <td>${d.break_hours}</td>
+          <td>${d.lunch_hours}</td>
+          <td class="${hoursClass}">${d.work_hours}</td>
+        </tr>
+      `;
+    }).join('');
+  } catch (err) {
+    console.error('Error fetching weekly summary:', err);
+  }
+}
+
+function navigateWeek(offsetDays) {
+  if (!currentWeekStartStr) return;
+  const current = new Date(currentWeekStartStr + 'T00:00:00');
+  current.setDate(current.getDate() + offsetDays);
+  const newStartStr = current.toISOString().split('T')[0];
+  fetchWeeklySummary(newStartStr);
+}
+
+function copyAgile1Summary() {
+  if (!cachedWeeklyData) return;
+  const data = cachedWeeklyData;
+
+  let text = `Agile1 / PPM Timesheet Summary (${data.week_start} to ${data.week_end})\n`;
+  text += `--------------------------------------------------\n`;
+  data.days.forEach(d => {
+    if (parseFloat(d.work_hours) > 0) {
+      text += `${d.day_name.slice(0, 3)} (${d.short_date}): ${d.work_hours} hrs  [In: ${d.first_clock_in}, Out: ${d.last_clock_out}]\n`;
+    } else {
+      text += `${d.day_name.slice(0, 3)} (${d.short_date}): 0.00 hrs\n`;
+    }
+  });
+  text += `--------------------------------------------------\n`;
+  text += `Total Net Work Hours: ${data.total_work_hours} hrs\n`;
+
+  navigator.clipboard.writeText(text).then(() => {
+    showToast('Copied!', 'Weekly decimal hours summary copied to clipboard for Agile1 / PPM.', 'success');
+  }).catch(err => {
+    // Fallback if clipboard API restricted
+    const el = document.createElement('textarea');
+    el.value = text;
+    document.body.appendChild(el);
+    el.select();
+    document.execCommand('copy');
+    document.body.removeChild(el);
+    showToast('Copied!', 'Weekly decimal hours summary copied to clipboard.', 'success');
+  });
 }
 
 // Fetch logs list
@@ -318,6 +393,12 @@ function setupEventListeners() {
   document.getElementById('btn-close-custom-clockin').addEventListener('click', () => customClockInModalEl.style.display = 'none');
   document.getElementById('btn-cancel-custom-clockin').addEventListener('click', () => customClockInModalEl.style.display = 'none');
   document.getElementById('custom-clockin-form').addEventListener('submit', submitCustomClockIn);
+
+  // Weekly Timesheet Navigation & Copy
+  document.getElementById('btn-prev-week').addEventListener('click', () => navigateWeek(-7));
+  document.getElementById('btn-current-week').addEventListener('click', () => fetchWeeklySummary());
+  document.getElementById('btn-next-week').addEventListener('click', () => navigateWeek(7));
+  document.getElementById('btn-copy-agile1').addEventListener('click', copyAgile1Summary);
 }
 
 // Open Settings Modal
