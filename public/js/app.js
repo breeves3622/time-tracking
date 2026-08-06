@@ -263,8 +263,9 @@ async function fetchWeeklySummary(weekStartStr = '') {
           <td><strong>${d.day_name}</strong></td>
           <td>${d.short_date}</td>
           <td>${d.first_clock_in}</td>
+          <td>${d.lunch_out}</td>
+          <td>${d.lunch_in}</td>
           <td>${d.last_clock_out}</td>
-          <td>${d.break_hours}</td>
           <td>${d.lunch_hours}</td>
           <td class="${hoursClass}">${d.work_hours}</td>
         </tr>
@@ -288,19 +289,24 @@ function copyAgile1Summary() {
   const data = cachedWeeklyData;
 
   let text = `Agile1 / PPM Timesheet Summary (${data.week_start} to ${data.week_end})\n`;
-  text += `--------------------------------------------------\n`;
+  text += `----------------------------------------------------------------------\n`;
   data.days.forEach(d => {
     if (parseFloat(d.work_hours) > 0) {
-      text += `${d.day_name.slice(0, 3)} (${d.short_date}): ${d.work_hours} hrs  [In: ${d.first_clock_in}, Out: ${d.last_clock_out}]\n`;
+      let punchText = `In: ${d.first_clock_in}`;
+      if (d.lunch_out !== '-') {
+        punchText += ` | Lunch: ${d.lunch_out} - ${d.lunch_in}`;
+      }
+      punchText += ` | Out: ${d.last_clock_out}`;
+      text += `${d.day_name.slice(0, 3)} (${d.short_date}): ${d.work_hours} hrs  [${punchText}]\n`;
     } else {
       text += `${d.day_name.slice(0, 3)} (${d.short_date}): 0.00 hrs\n`;
     }
   });
-  text += `--------------------------------------------------\n`;
+  text += `----------------------------------------------------------------------\n`;
   text += `Total Net Work Hours: ${data.total_work_hours} hrs\n`;
 
   navigator.clipboard.writeText(text).then(() => {
-    showToast('Copied!', 'Weekly decimal hours summary copied to clipboard for Agile1 / PPM.', 'success');
+    showToast('Copied!', 'Weekly decimal hours & lunch punches copied to clipboard for Agile1 / PPM.', 'success');
   }).catch(err => {
     // Fallback if clipboard API restricted
     const el = document.createElement('textarea');
@@ -309,7 +315,7 @@ function copyAgile1Summary() {
     el.select();
     document.execCommand('copy');
     document.body.removeChild(el);
-    showToast('Copied!', 'Weekly decimal hours summary copied to clipboard.', 'success');
+    showToast('Copied!', 'Weekly decimal hours & lunch punches copied to clipboard.', 'success');
   });
 }
 
@@ -322,7 +328,7 @@ async function fetchLogs() {
     if (!Array.isArray(logs) || logs.length === 0) {
       logsTbodyEl.innerHTML = `
         <tr>
-          <td colspan="8" class="text-center">No shift records found yet.</td>
+          <td colspan="9" class="text-center">No shift records found yet.</td>
         </tr>
       `;
       return;
@@ -331,15 +337,18 @@ async function fetchLogs() {
     logsTbodyEl.innerHTML = logs.map(shift => {
       const clockIn = new Date(shift.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
       const clockOut = shift.end_time ? new Date(shift.end_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Active';
+      const lunchOut = shift.lunchOut ? new Date(shift.lunchOut).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '-';
+      const lunchIn = shift.lunchIn ? new Date(shift.lunchIn).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : (shift.lunchOut ? 'On Lunch' : '-');
       const statusBadge = `<span class="status-badge status-${shift.status}">${shift.status.replace('_', ' ')}</span>`;
 
       return `
         <tr>
           <td><strong>${shift.date}</strong></td>
           <td>${clockIn}</td>
+          <td>${lunchOut}</td>
+          <td>${lunchIn}</td>
           <td>${clockOut}</td>
           <td>${formatMsToHM(shift.workMs)}</td>
-          <td>${formatMsToHM(shift.breakMs)}</td>
           <td>${formatMsToHM(shift.lunchMs)}</td>
           <td>${statusBadge}</td>
           <td>

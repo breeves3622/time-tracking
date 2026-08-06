@@ -250,6 +250,7 @@ app.get('/api/logs', (req, res) => {
     const logs = shifts.map(shift => {
       const events = db.getEvents(shift.id);
       let workMs = 0, breakMs = 0, lunchMs = 0;
+      let lunchOut = null, lunchIn = null;
 
       for (const ev of events) {
         let dur = ev.duration_ms || 0;
@@ -258,7 +259,11 @@ app.get('/api/logs', (req, res) => {
         }
         if (ev.type === 'work') workMs += dur;
         else if (ev.type === 'break') breakMs += dur;
-        else if (ev.type === 'lunch') lunchMs += dur;
+        else if (ev.type === 'lunch') {
+          lunchMs += dur;
+          if (!lunchOut) lunchOut = ev.start_time;
+          if (ev.end_time) lunchIn = ev.end_time;
+        }
       }
 
       return {
@@ -266,7 +271,9 @@ app.get('/api/logs', (req, res) => {
         events,
         workMs,
         breakMs,
-        lunchMs
+        lunchMs,
+        lunchOut,
+        lunchIn
       };
     });
 
@@ -310,6 +317,8 @@ app.get('/api/weekly-summary', (req, res) => {
       let dayLunchMs = 0;
       let firstClockIn = null;
       let lastClockOut = null;
+      let lunchOutTime = null;
+      let lunchInTime = null;
 
       if (shiftsOnDate.length > 0) {
         firstClockIn = shiftsOnDate[0].start_time;
@@ -324,7 +333,11 @@ app.get('/api/weekly-summary', (req, res) => {
             }
             if (ev.type === 'work') dayWorkMs += dur;
             else if (ev.type === 'break') dayBreakMs += dur;
-            else if (ev.type === 'lunch') dayLunchMs += dur;
+            else if (ev.type === 'lunch') {
+              dayLunchMs += dur;
+              if (!lunchOutTime) lunchOutTime = ev.start_time;
+              if (ev.end_time) lunchInTime = ev.end_time;
+            }
           }
         }
       }
@@ -338,6 +351,8 @@ app.get('/api/weekly-summary', (req, res) => {
         day_name: dayNames[i],
         short_date: d.toLocaleDateString([], { month: 'short', day: 'numeric' }),
         first_clock_in: firstClockIn ? new Date(firstClockIn).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '-',
+        lunch_out: lunchOutTime ? new Date(lunchOutTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '-',
+        lunch_in: lunchInTime ? new Date(lunchInTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : (lunchOutTime ? 'On Lunch' : '-'),
         last_clock_out: lastClockOut ? new Date(lastClockOut).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : (firstClockIn ? 'Active' : '-'),
         work_hours: (dayWorkMs / (1000 * 60 * 60)).toFixed(2),
         break_hours: (dayBreakMs / (1000 * 60 * 60)).toFixed(2),
