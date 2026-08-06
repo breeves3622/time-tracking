@@ -94,8 +94,23 @@
             <span class="metric-value" id="metric-lunch-time">0h 0m</span>
           </div>
         </div>
+      </section>
+
+      <!-- View Selection Tabs -->
+      <div class="view-tabs-bar">
+        <button class="view-tab-btn active" id="tab-btn-weekly" onclick="switchMainTab('weekly')">
+          📅 Weekly Timesheet (Agile1 / PPM)
+        </button>
+        <button class="view-tab-btn" id="tab-btn-history" onclick="switchMainTab('history')">
+          📜 Detailed Shift History
+        </button>
+        <button class="view-tab-btn" id="tab-btn-both" onclick="switchMainTab('both')">
+          📊 Show Both Views
+        </button>
+      </div>
+
       <!-- Weekly Timesheet View (Agile1 & PPM decimal hours format) -->
-      <section class="card weekly-section">
+      <section class="card weekly-section full-width-card" id="view-weekly-container">
         <div class="logs-header">
           <div>
             <h2>📅 Weekly Timesheet View</h2>
@@ -139,9 +154,12 @@
       </section>
 
       <!-- Shift History & Logs Section -->
-      <section class="card logs-section">
+      <section class="card logs-section full-width-card" id="view-history-container" style="display: none;">
         <div class="logs-header">
-          <h2>Shift History</h2>
+          <div>
+            <h2>📜 Detailed Shift History</h2>
+            <span class="sub-text">Individual clock-in/out timestamps and break logs</span>
+          </div>
           <div class="logs-actions">
             <button id="btn-open-manual-log" class="btn btn-secondary btn-sm">➕ Add Manual Entry</button>
             <button id="btn-export-csv" class="btn btn-secondary btn-sm">📥 Export CSV</button>

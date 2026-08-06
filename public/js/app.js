@@ -803,3 +803,30 @@ function urlBase64ToUint8Array(base64String) {
   }
   return outputArray;
 }
+
+// Tab switcher between Weekly Timesheet View and Shift History
+function switchMainTab(tab) {
+  const weeklyContainer = document.getElementById('view-weekly-container');
+  const historyContainer = document.getElementById('view-history-container');
+  const btnWeekly = document.getElementById('tab-btn-weekly');
+  const btnHistory = document.getElementById('tab-btn-history');
+  const btnBoth = document.getElementById('tab-btn-both');
+
+  btnWeekly.classList.remove('active');
+  btnHistory.classList.remove('active');
+  btnBoth.classList.remove('active');
+
+  if (tab === 'weekly') {
+    btnWeekly.classList.add('active');
+    weeklyContainer.style.display = 'block';
+    historyContainer.style.display = 'none';
+  } else if (tab === 'history') {
+    btnHistory.classList.add('active');
+    weeklyContainer.style.display = 'none';
+    historyContainer.style.display = 'block';
+  } else if (tab === 'both') {
+    btnBoth.classList.add('active');
+    weeklyContainer.style.display = 'block';
+    historyContainer.style.display = 'block';
+  }
+}
