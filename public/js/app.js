@@ -411,6 +411,7 @@ async function openSettingsModal() {
     document.getElementById('set-shift-hours').value = settings.shift_hours || 8;
     document.getElementById('set-break-mins').value = settings.break_mins || 15;
     document.getElementById('set-lunch-mins').value = settings.lunch_mins || 30;
+    document.getElementById('set-break-after').value = settings.break_after_hours || 2;
     document.getElementById('set-lunch-after').value = settings.lunch_after_hours || 4;
     document.getElementById('set-warning-lead').value = settings.warning_lead_mins || 3;
     document.getElementById('set-ntfy-target').value = settings.ntfy_target || '';
@@ -429,6 +430,7 @@ async function saveSettings(e) {
     shift_hours: document.getElementById('set-shift-hours').value,
     break_mins: document.getElementById('set-break-mins').value,
     lunch_mins: document.getElementById('set-lunch-mins').value,
+    break_after_hours: document.getElementById('set-break-after').value,
     lunch_after_hours: document.getElementById('set-lunch-after').value,
     warning_lead_mins: document.getElementById('set-warning-lead').value,
     ntfy_target: document.getElementById('set-ntfy-target').value

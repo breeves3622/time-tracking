@@ -15,6 +15,7 @@ const defaultData = {
     shift_hours: '8',
     break_mins: '15',
     lunch_mins: '30',
+    break_after_hours: '2',
     lunch_after_hours: '4',
     warning_lead_mins: '3',
     ntfy_target: '',

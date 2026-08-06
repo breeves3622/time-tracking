@@ -88,8 +88,27 @@ function checkShiftAlerts() {
       let totalWorkMs = completedWorkEvents.reduce((sum, e) => sum + (e.duration_ms || 0), 0);
       totalWorkMs += elapsedMs; // add current work segment
 
-      const totalWorkHours = totalWorkMs / (1000 * 60 * 60);
+      const breakAfterHours = parseFloat(settings.break_after_hours || '2');
 
+      // 3A. Upcoming Break Alert (for current continuous work stretch)
+      const currentSegmentHours = elapsedMs / (1000 * 60 * 60);
+      const breakMinsRemaining = (breakAfterHours - currentSegmentHours) * 60;
+
+      if (breakMinsRemaining <= warningLeadMins && breakMinsRemaining > 0) {
+        const eventKey = `upcoming_break_${activeShift.id}_${Math.floor(elapsedMins)}`;
+        if (!db.checkNotificationSent(activeShift.id, 'upcoming_break')) {
+          db.markNotificationSent(activeShift.id, 'upcoming_break');
+          const minsText = Math.ceil(breakMinsRemaining);
+          sendPushNotification(
+            '☕ Break Recommended Soon',
+            `You have been working continuously for nearly ${breakAfterHours} hours. Recommended break in ${minsText} minute${minsText === 1 ? '' : 's'}!`,
+            { tag: 'upcoming-break', priority: 'default' }
+          );
+        }
+      }
+
+      // 3B. Upcoming Lunch Alert (total work time today)
+      const totalWorkHours = totalWorkMs / (1000 * 60 * 60);
       const hasTakenLunch = events.some(e => e.type === 'lunch');
       const targetLunchHours = lunchAfterHours;
       const hoursRemaining = targetLunchHours - totalWorkHours;
@@ -101,7 +120,7 @@ function checkShiftAlerts() {
           const minsText = Math.ceil(minsRemaining);
           sendPushNotification(
             '🥪 Lunch Time Approaching',
-            `You have been working for nearly ${targetLunchHours} hours. Recommended lunch break in ${minsText} minute${minsText === 1 ? '' : 's'}!`,
+            `You have been working for nearly ${targetLunchHours} hours today. Recommended lunch break in ${minsText} minute${minsText === 1 ? '' : 's'}!`,
             { tag: 'upcoming-lunch', priority: 'default' }
           );
         }
