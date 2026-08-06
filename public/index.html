@@ -228,6 +228,29 @@
     </div>
   </div>
 
+  <!-- Custom / Retroactive Clock-In Modal -->
+  <div class="modal-overlay" id="custom-clockin-modal" style="display: none;">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>🕒 Clock In at Custom Time (Retroactive)</h3>
+        <button class="btn-close" id="btn-close-custom-clockin">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="custom-clockin-form">
+          <div class="form-group">
+            <label for="custom-clockin-time">Actual Time You Started Work Today</label>
+            <input type="datetime-local" id="custom-clockin-time" required>
+            <small class="help-text">Use this if you forgot to clock in earlier today. Your shift duration will be calculated from this start time.</small>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" id="btn-cancel-custom-clockin">Cancel</button>
+            <button type="submit" class="btn btn-success">▶ Start Shift at Selected Time</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
   <!-- Toast Container -->
   <div class="toast-container" id="toast-container"></div>
 

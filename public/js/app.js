@@ -169,10 +169,14 @@ function renderActionButtons() {
   if (currentStatus === 'clocked_out') {
     actionsGridEl.innerHTML = `
       <button class="btn btn-success btn-lg" onclick="handleClockAction('clock_in')">
-        <span>▶</span> Clock In
+        <span>▶</span> Clock In Now
+      </button>
+      <button class="btn btn-secondary btn-lg" onclick="openCustomClockInModal()">
+        <span>🕒</span> Custom Start Time
       </button>
     `;
   } else if (currentStatus === 'working') {
+    const shiftStartTimeStr = activeShift ? new Date(activeShift.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
     actionsGridEl.innerHTML = `
       <button class="btn btn-warning" onclick="handleClockAction('start_break')">
         <span>☕</span> Take Break
@@ -183,6 +187,11 @@ function renderActionButtons() {
       <button class="btn btn-danger" onclick="handleClockAction('clock_out')">
         <span>⏹</span> Clock Out
       </button>
+      <div style="width: 100%; margin-top: 0.75rem;">
+        <button class="btn btn-secondary btn-sm" onclick="openEditStartTimeModal()" style="font-size: 0.8rem;">
+          ✏️ Edit Start Time (Started at ${shiftStartTimeStr})
+        </button>
+      </div>
     `;
   } else if (currentStatus === 'break') {
     actionsGridEl.innerHTML = `
@@ -303,6 +312,12 @@ function setupEventListeners() {
 
   // CSV Export
   document.getElementById('btn-export-csv').addEventListener('click', exportCsv);
+
+  // Custom Clock In Modal open/close/submit
+  const customClockInModalEl = document.getElementById('custom-clockin-modal');
+  document.getElementById('btn-close-custom-clockin').addEventListener('click', () => customClockInModalEl.style.display = 'none');
+  document.getElementById('btn-cancel-custom-clockin').addEventListener('click', () => customClockInModalEl.style.display = 'none');
+  document.getElementById('custom-clockin-form').addEventListener('submit', submitCustomClockIn);
 }
 
 // Open Settings Modal
@@ -399,6 +414,88 @@ async function saveManualLog(e) {
   } catch (err) {
     showToast('Error', err.message, 'danger');
   }
+}
+
+// Open Custom Clock In Modal
+function openCustomClockInModal() {
+  const now = new Date();
+  const formatIsoLocal = (d) => {
+    const tzOffset = d.getTimezoneOffset() * 60000;
+    return new Date(d.getTime() - tzOffset).toISOString().slice(0, 16);
+  };
+  document.getElementById('custom-clockin-time').value = formatIsoLocal(now);
+  document.getElementById('custom-clockin-modal').style.display = 'flex';
+}
+
+// Submit Custom Clock In
+async function submitCustomClockIn(e) {
+  e.preventDefault();
+  const timeVal = document.getElementById('custom-clockin-time').value;
+  if (!timeVal) return;
+
+  try {
+    const res = await fetch('/api/clock', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'clock_in',
+        custom_start_time: new Date(timeVal).toISOString()
+      })
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      showToast('Error', data.error || 'Clock in failed', 'danger');
+      return;
+    }
+
+    showToast('Success', data.message, 'success');
+    document.getElementById('custom-clockin-modal').style.display = 'none';
+    await fetchStatus();
+    await fetchLogs();
+  } catch (err) {
+    showToast('Error', err.message, 'danger');
+  }
+}
+
+// Open Edit Start Time Modal for Active Shift
+function openEditStartTimeModal() {
+  const customClockInModalEl = document.getElementById('custom-clockin-modal');
+  const now = activeShift ? new Date(activeShift.start_time) : new Date();
+  const formatIsoLocal = (d) => {
+    const tzOffset = d.getTimezoneOffset() * 60000;
+    return new Date(d.getTime() - tzOffset).toISOString().slice(0, 16);
+  };
+  document.getElementById('custom-clockin-time').value = formatIsoLocal(now);
+  
+  const form = document.getElementById('custom-clockin-form');
+  form.onsubmit = async (e) => {
+    e.preventDefault();
+    const timeVal = document.getElementById('custom-clockin-time').value;
+    try {
+      const res = await fetch('/api/clock', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'update_start_time',
+          custom_start_time: new Date(timeVal).toISOString()
+        })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        showToast('Updated', 'Shift start time adjusted', 'success');
+        customClockInModalEl.style.display = 'none';
+        form.onsubmit = submitCustomClockIn;
+        fetchStatus();
+        fetchLogs();
+      } else {
+        showToast('Error', data.error || 'Update failed', 'danger');
+      }
+    } catch (err) {
+      showToast('Error', err.message, 'danger');
+    }
+  };
+
+  customClockInModalEl.style.display = 'flex';
 }
 
 // CSV Export

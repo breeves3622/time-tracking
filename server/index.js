@@ -100,18 +100,22 @@ app.post('/api/clock', (req, res) => {
         return res.status(400).json({ error: 'Already clocked in' });
       }
 
+      const startIso = req.body.custom_start_time 
+        ? new Date(req.body.custom_start_time).toISOString() 
+        : nowIso;
+
       const newShift = db.createShift({
         date: today,
-        start_time: nowIso,
+        start_time: startIso,
         status: 'working',
         current_event_type: 'work',
-        current_event_start: nowIso
+        current_event_start: startIso
       });
 
       db.createEvent({
         shift_id: newShift.id,
         type: 'work',
-        start_time: nowIso
+        start_time: startIso
       });
 
       return res.json({ success: true, message: 'Clocked in successfully' });
@@ -119,6 +123,24 @@ app.post('/api/clock', (req, res) => {
 
     if (!activeShift) {
       return res.status(400).json({ error: 'No active shift found. Please clock in first.' });
+    }
+
+    // UPDATE SHIFT START TIME RETROSPECTIVELY
+    if (action === 'update_start_time') {
+      if (!req.body.custom_start_time) {
+        return res.status(400).json({ error: 'custom_start_time is required' });
+      }
+      const newStartIso = new Date(req.body.custom_start_time).toISOString();
+      const events = db.getEvents(activeShift.id);
+
+      db.updateShift(activeShift.id, { start_time: newStartIso });
+      if (events.length > 0) {
+        db.updateEvent(events[0].id, { start_time: newStartIso });
+        if (events.length === 1) {
+          db.updateShift(activeShift.id, { current_event_start: newStartIso });
+        }
+      }
+      return res.json({ success: true, message: 'Shift start time updated' });
     }
 
     const currentEvent = db.getCurrentEvent(activeShift.id);
