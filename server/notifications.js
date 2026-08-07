@@ -89,15 +89,18 @@ async function sendPushNotification(title, message, options = {}) {
           console.log(`[Notification] Gotify alarm dispatched to ${targetUrl}`);
         }
       } else {
-        // Ntfy format with sticky max-priority alarm headers
+        // Ntfy target URL normalization for self-hosted instance
         if (!targetUrl.startsWith('http://') && !targetUrl.startsWith('https://')) {
-          // If domain contains slashes or dots like ntfy.clanhanoi.net/topic
-          if (targetUrl.includes('.') || targetUrl.includes('/')) {
+          if (targetUrl.includes('ntfy.clanhanoi.net')) {
             targetUrl = `https://${targetUrl}`;
+          } else if (targetUrl.includes('/') || targetUrl.includes('.')) {
+            targetUrl = `http://${targetUrl}`;
           } else {
-            targetUrl = `https://ntfy.sh/${targetUrl}`;
+            // Topic name only (e.g. "time-track") -> route to internal self-hosted ntfy container
+            targetUrl = `http://ntfy/${targetUrl}`;
           }
         }
+
         const priorityVal = (options.priority === 'max' || options.isAlarm) ? 'max' : (options.priority || 'high');
         const ntfyRes = await fetch(targetUrl, {
           method: 'POST',
@@ -111,7 +114,7 @@ async function sendPushNotification(title, message, options = {}) {
 
         if (!ntfyRes.ok) {
           const errText = await ntfyRes.text();
-          console.error(`[Notification] Ntfy HTTP ${ntfyRes.status} Error: ${errText}`);
+          console.error(`[Notification] Ntfy HTTP ${ntfyRes.status} Error: ${errText} (Target: ${targetUrl})`);
         } else {
           console.log(`[Notification] Ntfy alarm successfully dispatched to ${targetUrl} (Priority: ${priorityVal})`);
         }
