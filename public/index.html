@@ -223,9 +223,9 @@
           </div>
 
           <div class="form-group">
-            <label for="set-ntfy-target">Push Notification Endpoint (Ntfy or Gotify)</label>
-            <input type="text" id="set-ntfy-target" placeholder="http://ntfy/time-tracker-alerts">
-            <small class="help-text">For <strong>Ntfy</strong>, enter: <code>http://ntfy/topic-name</code> or <code>http://your-ip:8095/topic-name</code><br>For <strong>Gotify</strong>, enter: <code>http://gotify/message?token=YOUR_TOKEN</code></small>
+            <label for="set-ntfy-target">Push Notification Endpoint (Self-Hosted Ntfy)</label>
+            <input type="text" id="set-ntfy-target" placeholder="https://ntfy.clanhanoi.net/your-topic-name">
+            <small class="help-text">Enter your Ntfy topic URL, e.g.: <code>https://ntfy.clanhanoi.net/your-topic-name</code> or internal <code>http://ntfy/your-topic-name</code></small>
           </div>
 
           <div class="form-group checkbox-group" style="margin-top: 1rem;">
@@ -234,7 +234,7 @@
               <strong>📱 Mobile App Push Only (Disable In-Browser Audio Alarm)</strong>
             </label>
             <small class="help-text" style="margin-left: 1.6rem; display: block; margin-top: 0.25rem;">
-              When checked, alarms will be pushed directly to your mobile app (Ntfy / Gotify) without playing sound in the browser.
+              When checked, alarms will be pushed directly to your Ntfy mobile app without playing sound in the browser.
             </small>
           </div>
 
