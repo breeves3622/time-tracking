@@ -135,6 +135,12 @@ const db = {
     saveData();
   },
 
+  deleteShiftEvents(shift_id) {
+    const numId = Number(shift_id);
+    data.events = data.events.filter(e => e.shift_id !== numId);
+    saveData();
+  },
+
   getEvents(shift_id) {
     return data.events.filter(e => e.shift_id === Number(shift_id));
   },

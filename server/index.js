@@ -376,33 +376,120 @@ app.get('/api/weekly-summary', (req, res) => {
   }
 });
 
-// POST /api/logs - Manual add entry
+// POST /api/logs - Manual add entry with exact punch timestamps
 app.post('/api/logs', (req, res) => {
   try {
-    const { date, start_time, end_time, work_mins, break_mins, lunch_mins } = req.body;
-    if (!date || !start_time || !end_time) {
-      return res.status(400).json({ error: 'Date, start time, and end time are required' });
+    const { date, start_time, lunch_out, lunch_in, end_time } = req.body;
+    if (!date || !start_time) {
+      return res.status(400).json({ error: 'Date and start time are required' });
     }
+
+    const startIso = new Date(start_time).toISOString();
+    const endIso = end_time ? new Date(end_time).toISOString() : null;
+    const lunchOutIso = lunch_out ? new Date(lunch_out).toISOString() : null;
+    const lunchInIso = lunch_in ? new Date(lunch_in).toISOString() : null;
 
     const shift = db.createShift({
       date,
-      start_time,
-      status: 'clocked_out',
+      start_time: startIso,
+      status: endIso ? 'clocked_out' : 'working',
       current_event_type: 'work',
-      current_event_start: start_time
+      current_event_start: startIso
     });
 
-    db.updateShift(shift.id, { end_time });
+    if (endIso) {
+      db.updateShift(shift.id, { end_time: endIso });
+    }
 
-    const workMs = (parseFloat(work_mins) || 0) * 60 * 1000;
-    const breakMs = (parseFloat(break_mins) || 0) * 60 * 1000;
-    const lunchMs = (parseFloat(lunch_mins) || 0) * 60 * 1000;
+    // Generate events based on lunch out / lunch in
+    if (lunchOutIso && lunchInIso) {
+      const w1Ms = Math.max(0, new Date(lunchOutIso).getTime() - new Date(startIso).getTime());
+      const lMs = Math.max(0, new Date(lunchInIso).getTime() - new Date(lunchOutIso).getTime());
+      
+      db.createEvent({ shift_id: shift.id, type: 'work', start_time: startIso, end_time: lunchOutIso, duration_ms: w1Ms });
+      db.createEvent({ shift_id: shift.id, type: 'lunch', start_time: lunchOutIso, end_time: lunchInIso, duration_ms: lMs });
+      
+      if (endIso) {
+        const w2Ms = Math.max(0, new Date(endIso).getTime() - new Date(lunchInIso).getTime());
+        db.createEvent({ shift_id: shift.id, type: 'work', start_time: lunchInIso, end_time: endIso, duration_ms: w2Ms });
+      } else {
+        db.createEvent({ shift_id: shift.id, type: 'work', start_time: lunchInIso });
+      }
+    } else {
+      if (endIso) {
+        const wMs = Math.max(0, new Date(endIso).getTime() - new Date(startIso).getTime());
+        db.createEvent({ shift_id: shift.id, type: 'work', start_time: startIso, end_time: endIso, duration_ms: wMs });
+      } else {
+        db.createEvent({ shift_id: shift.id, type: 'work', start_time: startIso });
+      }
+    }
 
-    if (workMs > 0) db.createEvent({ shift_id: shift.id, type: 'work', start_time, end_time, duration_ms: workMs });
-    if (breakMs > 0) db.createEvent({ shift_id: shift.id, type: 'break', start_time, end_time, duration_ms: breakMs });
-    if (lunchMs > 0) db.createEvent({ shift_id: shift.id, type: 'lunch', start_time, end_time, duration_ms: lunchMs });
+    res.json({ success: true, message: 'Shift logged successfully' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
-    res.json({ success: true, message: 'Log entry added successfully' });
+// PUT /api/logs/:id - Edit existing shift punch timestamps
+app.put('/api/logs/:id', (req, res) => {
+  try {
+    const shiftId = Number(req.params.id);
+    const existingShift = db.getShift(shiftId);
+    if (!existingShift) {
+      return res.status(404).json({ error: 'Shift log not found' });
+    }
+
+    const { date, start_time, lunch_out, lunch_in, end_time } = req.body;
+    if (!date || !start_time) {
+      return res.status(400).json({ error: 'Date and start time are required' });
+    }
+
+    const startIso = new Date(start_time).toISOString();
+    const endIso = end_time ? new Date(end_time).toISOString() : null;
+    const lunchOutIso = lunch_out ? new Date(lunch_out).toISOString() : null;
+    const lunchInIso = lunch_in ? new Date(lunch_in).toISOString() : null;
+
+    db.updateShift(shiftId, {
+      date,
+      start_time: startIso,
+      end_time: endIso,
+      status: endIso ? 'clocked_out' : existingShift.status
+    });
+
+    // Replace all events for this shift
+    const existingEvents = db.getEvents(shiftId);
+    // Remove old events from db helper
+    existingEvents.forEach(e => {
+      // Clear out old events by re-filtering or deleting
+    });
+
+    // Re-create events with updated punch times
+    // Clear and rebuild events array in db
+    db.deleteShiftEvents(shiftId);
+
+    if (lunchOutIso && lunchInIso) {
+      const w1Ms = Math.max(0, new Date(lunchOutIso).getTime() - new Date(startIso).getTime());
+      const lMs = Math.max(0, new Date(lunchInIso).getTime() - new Date(lunchOutIso).getTime());
+
+      db.createEvent({ shift_id: shiftId, type: 'work', start_time: startIso, end_time: lunchOutIso, duration_ms: w1Ms });
+      db.createEvent({ shift_id: shiftId, type: 'lunch', start_time: lunchOutIso, end_time: lunchInIso, duration_ms: lMs });
+
+      if (endIso) {
+        const w2Ms = Math.max(0, new Date(endIso).getTime() - new Date(lunchInIso).getTime());
+        db.createEvent({ shift_id: shiftId, type: 'work', start_time: lunchInIso, end_time: endIso, duration_ms: w2Ms });
+      } else {
+        db.createEvent({ shift_id: shiftId, type: 'work', start_time: lunchInIso });
+      }
+    } else {
+      if (endIso) {
+        const wMs = Math.max(0, new Date(endIso).getTime() - new Date(startIso).getTime());
+        db.createEvent({ shift_id: shiftId, type: 'work', start_time: startIso, end_time: endIso, duration_ms: wMs });
+      } else {
+        db.createEvent({ shift_id: shiftId, type: 'work', start_time: startIso });
+      }
+    }
+
+    res.json({ success: true, message: 'Shift punches updated successfully' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

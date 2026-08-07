@@ -325,11 +325,14 @@ function copyAgile1Summary() {
   });
 }
 
+let cachedShiftLogs = [];
+
 // Fetch logs list
 async function fetchLogs() {
   try {
     const res = await fetch('/api/logs');
     const logs = await res.json();
+    cachedShiftLogs = logs;
 
     if (!Array.isArray(logs) || logs.length === 0) {
       logsTbodyEl.innerHTML = `
@@ -358,6 +361,7 @@ async function fetchLogs() {
           <td>${formatMsToHM(shift.lunchMs)}</td>
           <td>${statusBadge}</td>
           <td>
+            <button class="btn btn-secondary btn-sm" onclick="openEditShiftModal(${shift.id})">✏️ Edit</button>
             <button class="btn btn-danger btn-sm" onclick="deleteLog(${shift.id})">🗑️ Delete</button>
           </td>
         </tr>
@@ -365,6 +369,66 @@ async function fetchLogs() {
     }).join('');
   } catch (err) {
     console.error('Error loading logs:', err);
+  }
+}
+
+// Open Edit Shift Punches Modal
+function openEditShiftModal(shiftId) {
+  const shift = cachedShiftLogs.find(s => s.id === Number(shiftId));
+  if (!shift) return;
+
+  const formatIsoLocal = (dStr) => {
+    if (!dStr) return '';
+    const d = new Date(dStr);
+    const tzOffset = d.getTimezoneOffset() * 60000;
+    return new Date(d.getTime() - tzOffset).toISOString().slice(0, 16);
+  };
+
+  document.getElementById('edit-shift-id').value = shift.id;
+  document.getElementById('edit-shift-date').value = shift.date;
+  document.getElementById('edit-clock-in').value = formatIsoLocal(shift.start_time);
+  document.getElementById('edit-lunch-out').value = formatIsoLocal(shift.lunchOut);
+  document.getElementById('edit-lunch-in').value = formatIsoLocal(shift.lunchIn);
+  document.getElementById('edit-clock-out').value = formatIsoLocal(shift.end_time);
+
+  document.getElementById('edit-shift-modal').style.display = 'flex';
+}
+
+// Save Edit Shift Punches
+async function saveEditShift(e) {
+  e.preventDefault();
+  const shiftId = document.getElementById('edit-shift-id').value;
+  const clockInVal = document.getElementById('edit-clock-in').value;
+  const clockOutVal = document.getElementById('edit-clock-out').value;
+  const lunchOutVal = document.getElementById('edit-lunch-out').value;
+  const lunchInVal = document.getElementById('edit-lunch-in').value;
+
+  const payload = {
+    date: document.getElementById('edit-shift-date').value,
+    start_time: clockInVal ? new Date(clockInVal).toISOString() : null,
+    lunch_out: lunchOutVal ? new Date(lunchOutVal).toISOString() : null,
+    lunch_in: lunchInVal ? new Date(lunchInVal).toISOString() : null,
+    end_time: clockOutVal ? new Date(clockOutVal).toISOString() : null
+  };
+
+  try {
+    const res = await fetch(`/api/logs/${shiftId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if (res.ok) {
+      showToast('Updated', 'Shift punches updated successfully!', 'success');
+      document.getElementById('edit-shift-modal').style.display = 'none';
+      fetchLogs();
+      fetchWeeklySummary();
+      fetchStatus();
+    } else {
+      showToast('Error', data.error || 'Failed to update punches', 'danger');
+    }
+  } catch (err) {
+    showToast('Error', err.message, 'danger');
   }
 }
 
@@ -376,6 +440,7 @@ async function deleteLog(id) {
     if (res.ok) {
       showToast('Deleted', 'Shift log removed', 'success');
       fetchLogs();
+      fetchWeeklySummary();
       fetchStatus();
     }
   } catch (err) {
@@ -421,6 +486,12 @@ function setupEventListeners() {
   if (stopAlarmBtn) {
     stopAlarmBtn.addEventListener('click', stopContinuousAudioAlarm);
   }
+
+  // Edit Shift Punches Modal open/close/submit
+  const editShiftModalEl = document.getElementById('edit-shift-modal');
+  document.getElementById('btn-close-edit-shift').addEventListener('click', () => editShiftModalEl.style.display = 'none');
+  document.getElementById('btn-cancel-edit-shift').addEventListener('click', () => editShiftModalEl.style.display = 'none');
+  document.getElementById('edit-shift-form').addEventListener('submit', saveEditShift);
 }
 
 // Open Settings Modal
@@ -495,13 +566,17 @@ function openManualLogModal() {
 // Save Manual Log
 async function saveManualLog(e) {
   e.preventDefault();
+  const clockInVal = document.getElementById('log-start-time').value;
+  const clockOutVal = document.getElementById('log-end-time').value;
+  const lunchOutVal = document.getElementById('log-lunch-out').value;
+  const lunchInVal = document.getElementById('log-lunch-in').value;
+
   const payload = {
     date: document.getElementById('log-date').value,
-    start_time: new Date(document.getElementById('log-start-time').value).toISOString(),
-    end_time: new Date(document.getElementById('log-end-time').value).toISOString(),
-    work_mins: document.getElementById('log-work-mins').value,
-    break_mins: document.getElementById('log-break-mins').value,
-    lunch_mins: document.getElementById('log-lunch-mins').value
+    start_time: clockInVal ? new Date(clockInVal).toISOString() : null,
+    lunch_out: lunchOutVal ? new Date(lunchOutVal).toISOString() : null,
+    lunch_in: lunchInVal ? new Date(lunchInVal).toISOString() : null,
+    end_time: clockOutVal ? new Date(clockOutVal).toISOString() : null
   };
 
   try {
@@ -511,9 +586,10 @@ async function saveManualLog(e) {
       body: JSON.stringify(payload)
     });
     if (res.ok) {
-      showToast('Success', 'Manual log entry added', 'success');
+      showToast('Success', 'Manual shift punches logged', 'success');
       manualLogModalEl.style.display = 'none';
       fetchLogs();
+      fetchWeeklySummary();
       fetchStatus();
     }
   } catch (err) {

@@ -273,22 +273,63 @@
           </div>
           <div class="form-grid">
             <div class="form-group">
-              <label for="log-work-mins">Work Minutes</label>
-              <input type="number" id="log-work-mins" min="0" value="450" required>
+              <label for="log-lunch-out">Lunch Out Time (Optional)</label>
+              <input type="datetime-local" id="log-lunch-out">
             </div>
             <div class="form-group">
-              <label for="log-break-mins">Break Minutes</label>
-              <input type="number" id="log-break-mins" min="0" value="15" required>
-            </div>
-            <div class="form-group">
-              <label for="log-lunch-mins">Lunch Minutes</label>
-              <input type="number" id="log-lunch-mins" min="0" value="30" required>
+              <label for="log-lunch-in">Lunch In Time (Optional)</label>
+              <input type="datetime-local" id="log-lunch-in">
             </div>
           </div>
 
           <div class="modal-footer">
             <button type="button" class="btn btn-secondary" id="btn-cancel-manual-log">Cancel</button>
             <button type="submit" class="btn btn-primary">Save Entry</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit Shift Punches Modal -->
+  <div class="modal-overlay" id="edit-shift-modal" style="display: none;">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>✏️ Edit Shift Punches</h3>
+        <button class="btn-close" id="btn-close-edit-shift">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="edit-shift-form">
+          <input type="hidden" id="edit-shift-id">
+          <div class="form-group">
+            <label for="edit-shift-date">Shift Date</label>
+            <input type="date" id="edit-shift-date" required>
+          </div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="edit-clock-in">Clock In Time</label>
+              <input type="datetime-local" id="edit-clock-in" required>
+            </div>
+            <div class="form-group">
+              <label for="edit-clock-out">Clock Out Time</label>
+              <input type="datetime-local" id="edit-clock-out">
+              <small class="help-text">Leave blank if shift is currently active</small>
+            </div>
+          </div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="edit-lunch-out">Lunch Out Time (Optional)</label>
+              <input type="datetime-local" id="edit-lunch-out">
+            </div>
+            <div class="form-group">
+              <label for="edit-lunch-in">Lunch In Time (Optional)</label>
+              <input type="datetime-local" id="edit-lunch-in">
+            </div>
+          </div>
+
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" id="btn-cancel-edit-shift">Cancel</button>
+            <button type="submit" class="btn btn-primary">Save Punch Edits</button>
           </div>
         </form>
       </div>
