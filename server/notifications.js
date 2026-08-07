@@ -83,20 +83,21 @@ async function sendPushNotification(title, message, options = {}) {
         });
         console.log(`[Notification] Gotify alarm dispatched to ${targetUrl}`);
       } else {
-        // Ntfy plain text format with alarm headers
+        // Ntfy format with sticky max-priority alarm headers
         if (!targetUrl.startsWith('http://') && !targetUrl.startsWith('https://')) {
           targetUrl = `https://ntfy.sh/${targetUrl}`;
         }
+        const priorityVal = (options.priority === 'max' || options.isAlarm) ? 'max' : (options.priority || 'high');
         await fetch(targetUrl, {
           method: 'POST',
           headers: {
             'Title': title,
-            'Priority': options.priority === 'max' ? 'max' : (options.priority || 'high'),
+            'Priority': priorityVal,
             'Tags': options.tags || 'alarm_clock,warning,loud_sound',
           },
           body: message
         });
-        console.log(`[Notification] Ntfy alarm dispatched to ${targetUrl}`);
+        console.log(`[Notification] Ntfy alarm dispatched to ${targetUrl} (Priority: ${priorityVal})`);
       }
     } catch (err) {
       console.error('[Notification] Error sending push alert:', err.message);
