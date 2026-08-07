@@ -719,6 +719,9 @@ let alarmAudioInterval = null;
 let isAlarmActive = false;
 
 function startContinuousAudioAlarm(title, message) {
+  if (shiftSettings && (shiftSettings.mute_browser_audio === 'true' || shiftSettings.mute_browser_audio === true)) {
+    return; // Mobile App Push Only: suppress in-browser sound & alarm banner
+  }
   isAlarmActive = true;
   const banner = document.getElementById('alarm-banner');
   if (banner) {
