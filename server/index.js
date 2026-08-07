@@ -12,6 +12,16 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, '../public')));
 
+// GET /api/time - Synchronized time server endpoint
+app.get('/api/time', (req, res) => {
+  const now = new Date();
+  res.json({
+    iso: now.toISOString(),
+    timestamp: now.getTime(),
+    timezone: process.env.TZ || Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
+  });
+});
+
 function getTodayDateString() {
   const d = new Date();
   return d.toISOString().split('T')[0];

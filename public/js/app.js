@@ -32,8 +32,32 @@ const logsTbodyEl = document.getElementById('logs-tbody');
 const settingsModalEl = document.getElementById('settings-modal');
 const manualLogModalEl = document.getElementById('manual-log-modal');
 
+let serverTimeOffsetMs = 0;
+
+async function syncTimeWithServer() {
+  try {
+    const t0 = performance.now();
+    const res = await fetch('/api/time');
+    const t1 = performance.now();
+    const roundtripMs = t1 - t0;
+    const data = await res.json();
+    const serverMs = data.timestamp + Math.round(roundtripMs / 2);
+    serverTimeOffsetMs = serverMs - Date.now();
+    console.log(`[TimeSync] Synced with time server. Offset: ${Math.round(serverTimeOffsetMs)}ms (Latency: ${Math.round(roundtripMs)}ms)`);
+  } catch (err) {
+    console.warn('[TimeSync] Failed to sync time with server, falling back to local clock');
+  }
+}
+
+function getSyncedNow() {
+  return new Date(Date.now() + serverTimeOffsetMs);
+}
+
 // Init application
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+  await syncTimeWithServer();
+  setInterval(syncTimeWithServer, 5 * 60 * 1000); // Re-sync every 5 minutes
+
   startLiveClock();
   fetchStatus();
   fetchLogs();
@@ -46,7 +70,7 @@ document.addEventListener('DOMContentLoaded', () => {
 // Live Clock in Header
 function startLiveClock() {
   function updateClock() {
-    const now = new Date();
+    const now = getSyncedNow();
     liveClockEl.textContent = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
   }
   updateClock();
@@ -104,7 +128,7 @@ function updateUI(data) {
 function runActiveTimer() {
   if (!currentEvent) return;
 
-  const now = new Date().getTime();
+  const now = getSyncedNow().getTime();
   const start = new Date(currentEvent.start_time).getTime();
   const elapsedMs = Math.max(0, now - start);
   const elapsedMins = elapsedMs / (1000 * 60);
