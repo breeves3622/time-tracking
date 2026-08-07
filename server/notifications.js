@@ -89,15 +89,29 @@ async function sendPushNotification(title, message, options = {}) {
           console.log(`[Notification] Gotify alarm dispatched to ${targetUrl}`);
         }
       } else {
-        // Ntfy JSON Body Payload (Bypasses Cloudflare proxy header stripping)
-        let topic = targetUrl;
-        if (topic.includes('/')) {
+        // Ntfy JSON Body Payload to root endpoint / (proper Ntfy JSON API parsing)
+        let topic = targetUrl.trim();
+        let serverBaseUrl = null;
+
+        if (topic.startsWith('http://') || topic.startsWith('https://')) {
+          try {
+            const parsedUrl = new URL(topic);
+            serverBaseUrl = `${parsedUrl.protocol}//${parsedUrl.host}`;
+            topic = parsedUrl.pathname.replace(/^\/+|\/+$/g, '');
+          } catch (e) {
+            // Fallback
+          }
+        } else if (topic.includes('/')) {
           const parts = topic.split('/').filter(Boolean);
-          topic = parts[parts.length - 1];
+          topic = parts.pop();
+          const hostPart = parts.join('/');
+          serverBaseUrl = hostPart.includes('.') ? `https://${hostPart}` : `http://${hostPart}`;
         }
 
+        if (!topic) topic = 'time-track';
+
         const priorityNum = (options.priority === 'max' || options.isAlarm) ? 5 : (options.priority === 'high' ? 4 : 3);
-        const jsonBody = JSON.stringify({
+        const jsonPayload = JSON.stringify({
           topic: topic,
           title: title,
           message: message,
@@ -105,28 +119,27 @@ async function sendPushNotification(title, message, options = {}) {
           tags: ['alarm_clock', 'warning', 'rotating_light']
         });
 
-        // Try internal Docker container first, then user specified URL
-        const endpointsToTry = [];
-        if (topic) {
-          endpointsToTry.push(`http://ntfy/${topic}`);
-        }
-        if (targetUrl.startsWith('http://') || targetUrl.startsWith('https://')) {
-          endpointsToTry.push(targetUrl);
-        } else if (targetUrl.includes('.')) {
-          endpointsToTry.push(`https://${targetUrl}`);
+        // Try internal Docker container root endpoint first, then serverBaseUrl root endpoint
+        const endpointsToTry = ['http://ntfy/'];
+        if (serverBaseUrl) {
+          endpointsToTry.push(`${serverBaseUrl}/`);
+        } else {
+          endpointsToTry.push('https://ntfy.clanhanoi.net/');
         }
 
+        const uniqueEndpoints = [...new Set(endpointsToTry)];
         let dispatched = false;
-        for (const endpoint of endpointsToTry) {
+
+        for (const endpoint of uniqueEndpoints) {
           try {
             const ntfyRes = await fetch(endpoint, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: jsonBody
+              body: jsonPayload
             });
 
             if (ntfyRes.ok) {
-              console.log(`[Notification] Ntfy alarm successfully dispatched to ${endpoint} (Topic: ${topic})`);
+              console.log(`[Notification] Ntfy alarm successfully dispatched to ${endpoint} for topic "${topic}" (Priority: ${priorityNum})`);
               dispatched = true;
               break;
             } else {
