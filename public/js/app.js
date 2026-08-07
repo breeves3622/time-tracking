@@ -508,6 +508,7 @@ async function openSettingsModal() {
     document.getElementById('set-lunch-after').value = settings.lunch_after_hours || 4;
     document.getElementById('set-warning-lead').value = settings.warning_lead_mins || 3;
     document.getElementById('set-ntfy-target').value = settings.ntfy_target || '';
+    document.getElementById('set-mute-browser-audio').checked = (settings.mute_browser_audio === 'true');
 
     updatePushStatusText();
     settingsModalEl.style.display = 'flex';
@@ -526,7 +527,8 @@ async function saveSettings(e) {
     break_after_hours: document.getElementById('set-break-after').value,
     lunch_after_hours: document.getElementById('set-lunch-after').value,
     warning_lead_mins: document.getElementById('set-warning-lead').value,
-    ntfy_target: document.getElementById('set-ntfy-target').value
+    ntfy_target: document.getElementById('set-ntfy-target').value,
+    mute_browser_audio: document.getElementById('set-mute-browser-audio').checked
   };
 
   try {
@@ -784,6 +786,9 @@ function getGlobalAudioContext() {
 
 // Play loud alarm audio chime
 function playNotificationAudio() {
+  if (shiftSettings && (shiftSettings.mute_browser_audio === 'true' || shiftSettings.mute_browser_audio === true)) {
+    return; // Muted in favor of Mobile App Push Only
+  }
   try {
     const ctx = getGlobalAudioContext();
     if (!ctx) return;

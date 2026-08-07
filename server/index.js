@@ -519,7 +519,7 @@ app.get('/api/settings', (req, res) => {
 // POST /api/settings
 app.post('/api/settings', (req, res) => {
   try {
-    const { shift_hours, break_mins, lunch_mins, break_after_hours, lunch_after_hours, warning_lead_mins, ntfy_target } = req.body;
+    const { shift_hours, break_mins, lunch_mins, break_after_hours, lunch_after_hours, warning_lead_mins, ntfy_target, mute_browser_audio } = req.body;
     if (shift_hours !== undefined) db.setSetting('shift_hours', shift_hours);
     if (break_mins !== undefined) db.setSetting('break_mins', break_mins);
     if (lunch_mins !== undefined) db.setSetting('lunch_mins', lunch_mins);
@@ -527,6 +527,7 @@ app.post('/api/settings', (req, res) => {
     if (lunch_after_hours !== undefined) db.setSetting('lunch_after_hours', lunch_after_hours);
     if (warning_lead_mins !== undefined) db.setSetting('warning_lead_mins', warning_lead_mins);
     if (ntfy_target !== undefined) db.setSetting('ntfy_target', String(ntfy_target).trim());
+    if (mute_browser_audio !== undefined) db.setSetting('mute_browser_audio', mute_browser_audio ? 'true' : 'false');
 
     res.json({ success: true, message: 'Settings saved successfully' });
   } catch (err) {
