@@ -63,7 +63,7 @@ async function sendPushNotification(title, message, options = {}) {
       if (isGotify) {
         // Gotify JSON payload format with high-priority alarm extras
         const priorityNum = (options.priority === 'max' || options.isAlarm) ? 10 : (options.priority === 'high' ? 8 : 5);
-        await fetch(targetUrl, {
+        const gotifyRes = await fetch(targetUrl, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
@@ -81,23 +81,40 @@ async function sendPushNotification(title, message, options = {}) {
             }
           })
         });
-        console.log(`[Notification] Gotify alarm dispatched to ${targetUrl}`);
+
+        if (!gotifyRes.ok) {
+          const errText = await gotifyRes.text();
+          console.error(`[Notification] Gotify HTTP ${gotifyRes.status} Error: ${errText}`);
+        } else {
+          console.log(`[Notification] Gotify alarm dispatched to ${targetUrl}`);
+        }
       } else {
         // Ntfy format with sticky max-priority alarm headers
         if (!targetUrl.startsWith('http://') && !targetUrl.startsWith('https://')) {
-          targetUrl = `https://ntfy.sh/${targetUrl}`;
+          // If domain contains slashes or dots like ntfy.clanhanoi.net/topic
+          if (targetUrl.includes('.') || targetUrl.includes('/')) {
+            targetUrl = `https://${targetUrl}`;
+          } else {
+            targetUrl = `https://ntfy.sh/${targetUrl}`;
+          }
         }
         const priorityVal = (options.priority === 'max' || options.isAlarm) ? 'max' : (options.priority || 'high');
-        await fetch(targetUrl, {
+        const ntfyRes = await fetch(targetUrl, {
           method: 'POST',
           headers: {
             'Title': title,
             'Priority': priorityVal,
-            'Tags': options.tags || 'alarm_clock,warning,loud_sound',
+            'Tags': 'alarm_clock,warning,rotating_light',
           },
           body: message
         });
-        console.log(`[Notification] Ntfy alarm dispatched to ${targetUrl} (Priority: ${priorityVal})`);
+
+        if (!ntfyRes.ok) {
+          const errText = await ntfyRes.text();
+          console.error(`[Notification] Ntfy HTTP ${ntfyRes.status} Error: ${errText}`);
+        } else {
+          console.log(`[Notification] Ntfy alarm successfully dispatched to ${targetUrl} (Priority: ${priorityVal})`);
+        }
       }
     } catch (err) {
       console.error('[Notification] Error sending push alert:', err.message);
