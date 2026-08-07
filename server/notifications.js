@@ -89,34 +89,57 @@ async function sendPushNotification(title, message, options = {}) {
           console.log(`[Notification] Gotify alarm dispatched to ${targetUrl}`);
         }
       } else {
-        // Ntfy target URL normalization for self-hosted instance
-        if (!targetUrl.startsWith('http://') && !targetUrl.startsWith('https://')) {
-          if (targetUrl.includes('ntfy.clanhanoi.net')) {
-            targetUrl = `https://${targetUrl}`;
-          } else if (targetUrl.includes('/') || targetUrl.includes('.')) {
-            targetUrl = `http://${targetUrl}`;
-          } else {
-            // Topic name only (e.g. "time-track") -> route to internal self-hosted ntfy container
-            targetUrl = `http://ntfy/${targetUrl}`;
+        // Ntfy JSON Body Payload (Bypasses Cloudflare proxy header stripping)
+        let topic = targetUrl;
+        if (topic.includes('/')) {
+          const parts = topic.split('/').filter(Boolean);
+          topic = parts[parts.length - 1];
+        }
+
+        const priorityNum = (options.priority === 'max' || options.isAlarm) ? 5 : (options.priority === 'high' ? 4 : 3);
+        const jsonBody = JSON.stringify({
+          topic: topic,
+          title: title,
+          message: message,
+          priority: priorityNum,
+          tags: ['alarm_clock', 'warning', 'rotating_light']
+        });
+
+        // Try internal Docker container first, then user specified URL
+        const endpointsToTry = [];
+        if (topic) {
+          endpointsToTry.push(`http://ntfy/${topic}`);
+        }
+        if (targetUrl.startsWith('http://') || targetUrl.startsWith('https://')) {
+          endpointsToTry.push(targetUrl);
+        } else if (targetUrl.includes('.')) {
+          endpointsToTry.push(`https://${targetUrl}`);
+        }
+
+        let dispatched = false;
+        for (const endpoint of endpointsToTry) {
+          try {
+            const ntfyRes = await fetch(endpoint, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: jsonBody
+            });
+
+            if (ntfyRes.ok) {
+              console.log(`[Notification] Ntfy alarm successfully dispatched to ${endpoint} (Topic: ${topic})`);
+              dispatched = true;
+              break;
+            } else {
+              const errText = await ntfyRes.text();
+              console.warn(`[Notification] Ntfy endpoint ${endpoint} returned HTTP ${ntfyRes.status}: ${errText}`);
+            }
+          } catch (err) {
+            console.warn(`[Notification] Endpoint ${endpoint} unreachable: ${err.message}`);
           }
         }
 
-        const priorityVal = (options.priority === 'max' || options.isAlarm) ? 'max' : (options.priority || 'high');
-        const ntfyRes = await fetch(targetUrl, {
-          method: 'POST',
-          headers: {
-            'Title': title,
-            'Priority': priorityVal,
-            'Tags': 'alarm_clock,warning,rotating_light',
-          },
-          body: message
-        });
-
-        if (!ntfyRes.ok) {
-          const errText = await ntfyRes.text();
-          console.error(`[Notification] Ntfy HTTP ${ntfyRes.status} Error: ${errText} (Target: ${targetUrl})`);
-        } else {
-          console.log(`[Notification] Ntfy alarm successfully dispatched to ${targetUrl} (Priority: ${priorityVal})`);
+        if (!dispatched) {
+          console.error(`[Notification] Could not dispatch Ntfy alarm to any endpoint for topic: ${topic}`);
         }
       }
     } catch (err) {
