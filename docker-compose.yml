@@ -39,7 +39,7 @@ services:
     ports:
       - "8095:80"
     environment:
-      - NTFY_BASE_URL=http://localhost:8095
+      - NTFY_BASE_URL=${NTFY_BASE_URL:-https://ntfy.clanhanoi.net}
       - NTFY_CACHE_FILE=/var/cache/ntfy/cache.db
       - NTFY_AUTH_FILE=/var/lib/ntfy/user.db
       - NTFY_AUTH_DEFAULT_ACCESS=read-write
