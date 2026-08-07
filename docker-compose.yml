@@ -16,6 +16,7 @@ services:
       - time_tracker_data:/app/data
     depends_on:
       - gotify
+      - ntfy
 
   gotify:
     image: gotify/server:latest
@@ -29,8 +30,30 @@ services:
     volumes:
       - gotify_data:/app/data
 
+  ntfy:
+    image: binwiederstein/ntfy:latest
+    container_name: ntfy
+    command:
+      - serve
+    restart: unless-stopped
+    ports:
+      - "8095:80"
+    environment:
+      - NTFY_BASE_URL=http://localhost:8095
+      - NTFY_CACHE_FILE=/var/cache/ntfy/cache.db
+      - NTFY_AUTH_FILE=/var/lib/ntfy/user.db
+      - NTFY_AUTH_DEFAULT_ACCESS=read-write
+      - TZ=America/New_York
+    volumes:
+      - ntfy_cache:/var/cache/ntfy
+      - ntfy_lib:/var/lib/ntfy
+
 volumes:
   time_tracker_data:
     driver: local
   gotify_data:
+    driver: local
+  ntfy_cache:
+    driver: local
+  ntfy_lib:
     driver: local
