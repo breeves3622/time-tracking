@@ -56,7 +56,7 @@ services:
       - gotify_data:/app/data
 
   ntfy:
-    image: heckel/ntfy:latest
+    image: binwiederhier/ntfy:latest
     container_name: ntfy
     command:
       - serve
